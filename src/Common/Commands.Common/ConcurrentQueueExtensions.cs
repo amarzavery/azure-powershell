@@ -13,34 +13,32 @@
 // ----------------------------------------------------------------------------------
 
 using System;
-using Microsoft.Azure.Commands.ResourceManager.Common;
-using Microsoft.WindowsAzure.Commands.Utilities.Common;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
-namespace Microsoft.Azure.Commands.Insights
+namespace Microsoft.WindowsAzure.Commands.Common
 {
-    /// <summary>
-    /// Base class for the Azure Insights SDK Cmdlets
-    /// </summary>
-    public abstract class InsightsCmdletBase : AzureRMCmdlet
+    public static class ConcurrentQueueExtensions
     {
-        /// <summary>
-        /// Executes the Cmdlet. This is a callback function to simplify the exception handling
-        /// </summary>
-        protected abstract void ProcessRecordInternal();
-
-        /// <summary>
-        /// Execute the cmdlet
-        /// </summary>
-        public override void ExecuteCmdlet()
+        private const int Capacity = 500;
+        public static void CheckAndEnqueue(this ConcurrentQueue<string> queue, string item)
         {
-            try
+            if (queue == null || item == null)
             {
-                this.ProcessRecordInternal();
+                return;
             }
-            catch (AggregateException ex)
+            lock(queue)
             {
-                throw ex.Flatten().InnerException;
-            }
+                while (queue.Count >= Capacity)
+                {
+                    string result;
+                    queue.TryDequeue(out result);
+                }
+                queue.Enqueue(item);
+            } 
         }
     }
 }
